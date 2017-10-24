@@ -11,81 +11,90 @@ namespace IOlab1
 {
     class MyThread
     {
-        string message = "Wiadomość";
+        
         ConsoleColor actualColor;
+        Byte[] bytes;
+        TcpClient client;
+        String data;
         static void writeConsoleMessage(string message, ConsoleColor color)
         {
-
                 Console.ForegroundColor = color;
                 Console.WriteLine(message);
                 Console.ResetColor();
-            
         }
-        public MyThread(ConsoleColor color, string msg)
+        public MyThread(ConsoleColor color, TcpClient client, Byte[] bytes, String data)
         {
-                message = msg;
-                actualColor = color;
+            
+            actualColor = color;
+            this.client = client;
+            this.bytes = bytes;
+            this.data = data;
         }
 
         public void Run()
         {
-                writeConsoleMessage(message, actualColor);
-        }
+            NetworkStream stream = client.GetStream();
+            int i;
+            while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
+            {
+                data = Encoding.ASCII.GetString(bytes, 0, i);
+                writeConsoleMessage("Server Received:" + data, ConsoleColor.Green);
 
+                byte[] msg = Encoding.ASCII.GetBytes(data);
+
+                // Send back a response.
+                stream.Write(msg, 0, msg.Length);
+                writeConsoleMessage("Server sent:" + data, ConsoleColor.Red);
+                client.Close();
+            }
+        }
     }
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             ThreadPool.QueueUserWorkItem(ThreadServer);
-            ThreadPool.QueueUserWorkItem(ThreadClient, "Hallo");
-            ThreadPool.QueueUserWorkItem(ThreadClient, "Hi");
-            ThreadPool.QueueUserWorkItem(ThreadClient, "Hola");
-            ThreadPool.QueueUserWorkItem(ThreadClient, "Hej");
-            ThreadPool.QueueUserWorkItem(ThreadClient, "Cześć");
-            ThreadPool.QueueUserWorkItem(ThreadClient, "Heil");
+            ThreadPool.QueueUserWorkItem(ThreadClient, "Hello");
             Console.ReadKey();
-
         }
 
-        static void ThreadServer (Object stateinfo)
+        static void writeConsoleMessage(string message, ConsoleColor color)
         {
-            
+            Console.ForegroundColor = color;
+            Console.WriteLine(message);
+            Console.ResetColor();
+        }
+
+        static void ThreadServer(Object stateinfo)
+        {
             TcpListener server = new TcpListener(IPAddress.Any, 2048);
+            String data = null;
+            Byte[] bytes = new Byte[256];
             server.Start();
             
-
-            while (true)
-            {
-                    Console.WriteLine("Waiting for connection....");
-                    TcpClient client = server.AcceptTcpClient();
- 
+                Console.WriteLine("Waiting for connection...");
+                TcpClient client = server.AcceptTcpClient();
+                Console.WriteLine("Connected!");
+                MyThread myThread = new MyThread(ConsoleColor.Red, client, bytes, data);
+                Thread readThread = new Thread(new ThreadStart(myThread.Run));
+                readThread.Start();
                 
-                Console.WriteLine("Connected");
-                    MyThread myThread = new MyThread(ConsoleColor.Red, "ok");
-                    lock (myThread)
-                    {
-                        Thread writeThread = new Thread(new ThreadStart(myThread.Run));
-                        writeThread.Start(); 
-                }
-            }
+            
         }
 
         static void ThreadClient(Object stateinfo)
         {
-           
-            TcpClient client  = new TcpClient("127.0.0.1", 2048);
-            Byte[] data = System.Text.Encoding.ASCII.GetBytes((string)stateinfo);
+            TcpClient client = new TcpClient("127.0.0.1", 2048);
+            Byte[] data = Encoding.ASCII.GetBytes((string)stateinfo);
             NetworkStream stream = client.GetStream();
-
             stream.Write(data, 0, data.Length);
-            MyThread myThread = new MyThread(ConsoleColor.Green, stateinfo.ToString());
-            lock (myThread)
-            {
-                Thread writeThread = new Thread(new ThreadStart(myThread.Run));
-                writeThread.Start();
-            }
-            Console.WriteLine("Received: {0}", (string)stateinfo);
+            writeConsoleMessage("Client Sent:" + (string)stateinfo, ConsoleColor.Green);
+
+            String responseData = String.Empty;
+            data = new Byte[256];
+            Int32 bytes = stream.Read(data, 0, data.Length);
+            responseData = Encoding.ASCII.GetString(data, 0, bytes);
+            writeConsoleMessage("Clint recived:" + responseData, ConsoleColor.Red);
 
             stream.Close();
             client.Close();
