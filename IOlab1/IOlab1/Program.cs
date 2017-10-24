@@ -78,6 +78,7 @@ namespace IOlab1
                 MyThread myThread = new MyThread(ConsoleColor.Red, client, bytes, data);
                 Thread readThread = new Thread(new ThreadStart(myThread.Run));
                 readThread.Start();
+           
                 
             
         }
