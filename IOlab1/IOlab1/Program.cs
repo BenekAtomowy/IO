@@ -34,8 +34,8 @@ namespace IOlab1
         public void Run()
         {
             NetworkStream stream = client.GetStream();
-            int i;
-            while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
+            int i = stream.Read(bytes, 0, bytes.Length);
+            while (i  != 0)
             {
                 data = Encoding.ASCII.GetString(bytes, 0, i);
                 writeConsoleMessage("Server Received:" + data, ConsoleColor.Green);
