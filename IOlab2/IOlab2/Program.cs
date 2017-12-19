@@ -52,22 +52,62 @@ namespace IOlab2
                     wynik *= liczba;
                     liczba--;
                 }
-                
-            
+
             return wynik;
         }
-
-
-        static void Main(string[] args)
-        {
+        public static void zad5() {
             delegateSilnia = new DelegateType(silniarek);
-            IAsyncResult ar = delegateSilnia.BeginInvoke(10 , null, null);
+            IAsyncResult ar = delegateSilnia.BeginInvoke(10, null, null);
             int result = delegateSilnia.EndInvoke(ar);
             Console.WriteLine(result);
             delegateSilniait = new DelegateType(silniait);
             IAsyncResult arit = delegateSilnia.BeginInvoke(10, null, null);
             result = delegateSilnia.EndInvoke(arit);
             Console.WriteLine(result);
+        }
+
+
+        static void myAsyncCallback(IAsyncResult state)
+        {
+            string result = System.Text.Encoding.UTF8.GetString((byte[])((object[])state.AsyncState)[1]);
+            FileStream stream = (FileStream)((object[])state.AsyncState)[0];
+            stream.Close();
+            Console.Write(result);
+
+        }
+
+
+        public static void zad6()
+        {
+            FileStream stream = new FileStream("plik.txt", FileMode.Open);
+            byte[] buffer = new byte[1024];
+            IAsyncResult result = stream.BeginRead(buffer, 0, buffer.Length, myAsyncCallback, new object[] { stream, buffer });
+            stream.Close();
+        }
+
+        public static void zad7()
+        {
+            FileStream stream = new FileStream("plik.txt", FileMode.Open);
+            byte[] buffer = new byte[1024];
+            IAsyncResult result = stream.BeginRead(buffer, 0, buffer.Length, null, new object[] { stream, buffer });
+            
+
+     
+            stream.EndRead(result);
+            string message = System.Text.Encoding.UTF8.GetString((byte[])((object[])result.AsyncState)[1]);
+            stream.Close();
+            Console.Write(message);
+
+            Thread.Sleep(10000);
+        }
+
+        static void Main(string[] args)
+        {
+            zad5();
+            zad6();
+            zad7();
+
+
             Console.ReadKey();
 
         }
